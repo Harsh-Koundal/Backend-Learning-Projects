@@ -58,7 +58,7 @@ Each project is contained in its own folder:
 Backend-Learning-Projects/
 │
 ├── project-name/
-│   ├── config
+│   ├── config/
 │   ├── routes/
 │   ├── controllers/
 │   ├── models/
