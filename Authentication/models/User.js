@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -17,7 +18,7 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true,
-        minlength: 8,
+        minlength: 3,
         select: false,
     },
 
@@ -36,15 +37,14 @@ const userSchema = new mongoose.Schema({
 );
 
 
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
     // Only hash if password is new or modified
-    if (!this.isModified("password")) return next();
+    if (!this.isModified("password")) return;
 
-    const SALT_ROUNDS = 12; // industry recommended
+    const SALT_ROUNDS = 12;
     this.password = await bcrypt.hash(this.password, SALT_ROUNDS);
-
-    next();
 });
+
 
 // COMPARE PASSWORD METHOD
 userSchema.methods.comparePassword = async function (enteredPassword) {

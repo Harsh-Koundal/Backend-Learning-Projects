@@ -1,19 +1,24 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import helmet from 'helmet';
-import cookieParser from 'cookie-parser';
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
 
-import errorHandler from './middleware/error.middleware.js';
-import authRoutes from './routes/authRoutes.js';
-
-
-import { connectDB } from './config/db.js';
+import authRoutes from "./routes/authRoutes.js";
+import errorHandler from "./middleware/error.middleware.js";
+import { connectDB } from "./config/db.js";
 
 dotenv.config();
 
 const app = express();
 
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+
+  //  SECURITY & CORS
 
 app.use(
   cors({
@@ -25,6 +30,7 @@ app.use(
         "http://localhost:3020",
         "http://localhost:5025",
       ];
+
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -38,23 +44,32 @@ app.use(
 );
 
 app.use(helmet());
-app.use(cookieParser());
-app.use(errorHandler);
 
-app.use(express.json());
 
-// Health Check Endpoint
+  //  HEALTH CHECK
+
 app.get("/health", (req, res) => {
-  res.json({ status: "OK", uptime: process.uptime() });
+  res.json({
+    status: "OK",
+    uptime: process.uptime(),
+    timestamp: new Date(),
+  });
 });
 
 
-// Routes
-app.use('/api/auth', authRoutes);
+  //  ROUTES
 
-// Connect to DB and Start Server
+app.use("/api/auth", authRoutes);
+
+
+  //  ERROR HANDLER 
+
+app.use(errorHandler);
+ 
+  //  START SERVER & CONNECT DB
 connectDB();
+
 const PORT = process.env.PORT || 5025;
-app.listen(PORT,()=>{
-    console.log(`Server running on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
