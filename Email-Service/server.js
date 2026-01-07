@@ -4,8 +4,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 
-import { connectDB } from "./config/db";
-
+import { connectDB } from "./config/db.js";
+import authRoutes from "./routes/authRoutes.js";
 
 dotenv.config();
 
@@ -37,6 +37,9 @@ app.use(
 );
 
 app.use(helmet());
+
+// Routes 
+app.use("/api/auth",authRoutes);
 
 connectDB();
 
