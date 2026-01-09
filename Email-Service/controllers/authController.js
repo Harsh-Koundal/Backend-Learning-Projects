@@ -26,6 +26,12 @@ const hashToken = (token) => {
     return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+const generateResetToken = ()=>{
+    const token = crypto.randomBytes(32).toString("hex");
+    const hashed = crypto.createHash("sha256").update(token).digest("hex");
+    return {token,hashed};
+};
+
 // Controllers 
 
 // Email Verification
@@ -236,6 +242,73 @@ export const logout = async (req, res, next) => {
             message: "Logged out successfully",
         });
     } catch (err) {
+        next(err);
+    }
+};
+
+// Forgot Password
+
+export const forgotPassword = async(req,res,next)=>{
+    try{
+        const {email} = req.body;
+        if(!email){
+            return res.status(400).json({message:"Email is required"});
+        }
+
+        const user = await User.findOne({email});
+
+        if(!user) return res.status(404).json({message:"Email does not exists"});
+
+        const {token,hashed} = generateResetToken();
+
+        user.passwordResetToken = hashed;
+        user.passwordResetExpires = Date.now() + 15 *60*1000; // 15 min
+        await user.save();
+
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+
+        await sendEmail({
+            to:user.email,
+            subject:"Reset your password",
+            html:`
+            <h2>Password Reset</h2>
+            <p>Click the link to reset your passowrd:</p>
+            <a href = "${resetUrl}">Reset Password</a>
+            <p>This link expires in 15 minutes.</p>
+            `,
+        })
+
+        res.json({success:true,message:"Reset link was sent to your email"});
+    }catch(err){
+        next(err);
+    }
+}
+
+export const resetPassword = async(req,res,next)=>{
+    try{
+        const {token,password} = req.body;
+
+        if(!token || !password) return res.status(400).json({message:"Invalid request"});
+
+        const hashed = crypto.createHash("sha256").update(token).digest("hex");
+
+        const user = await User.findOne({
+            passwordResetToken:hashed,
+            passwordResetExpires: {$gt: Date.now()},
+        }).select("+passwordResetToken");
+
+        if(!user) return res.status(400).json({message:"Token is invalid or expired"});
+
+        user.password = password;
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+
+        user.refreshToken = undefined;
+
+        await user.save();
+
+        res.status(200).json({message:"Password reset successful"});
+    }catch(err){
         next(err);
     }
 };
